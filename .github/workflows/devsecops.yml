@@ -5,10 +5,6 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
-permissions:
-  contents: read
-  security-events: write
-
 jobs:
   devsecops-pipeline:
     runs-on: ubuntu-latest
@@ -39,26 +35,48 @@ jobs:
       run: semgrep scan --config=auto --sarif --output=semgrep.sarif
 
     - name: Upload Semgrep SARIF Report
-      uses: github/codeql-action/upload-sarif@v3
+      uses: actions/upload-artifact@v3
       with:
-        sarif_file: semgrep.sarif
+        name: semgrep-report
+        path: semgrep.sarif
       if: always()
 
     # ✅ Secrets Scan: TruffleHog
     - name: Run TruffleHog (Secrets Scan)
-      uses: trufflesecurity/trufflehog@main
+      run: trufflehog --json . > trufflehog_report.json
+
+    - name: Upload TruffleHog JSON Report
+      uses: actions/upload-artifact@v3
       with:
-        path: .
+        name: trufflehog-report
+        path: trufflehog_report.json
+      if: always()
 
     # ✅ DAST: OWASP ZAP
     - name: Start Java App for ZAP Scan
       run: nohup java -jar target/*.jar & sleep 15
 
-    - name: Run OWASP ZAP Baseline Scan (No GitHub Issue Reporting)
+    - name: Run OWASP ZAP Baseline Scan
       run: |
-        docker pull ghcr.io/zaproxy/zaproxy:stable
-        docker run --network=host -v $(pwd):/zap/wrk/:rw \
-          ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
-          -t http://localhost:8080 \
-          -J zap-report.json -w zap-report.md -r zap-report.html \
-          -I  # Continue even if warnings found
+        docker run -v $(pwd):/zap/wrk/:rw --network=host -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t http://localhost:8080 -J zap-report.json -w zap-report.md -r zap-report.html
+
+    - name: Upload OWASP ZAP Report (HTML)
+      uses: actions/upload-artifact@v3
+      with:
+        name: zap-html-report
+        path: zap-report.html
+      if: always()
+
+    - name: Upload OWASP ZAP Report (JSON)
+      uses: actions/upload-artifact@v3
+      with:
+        name: zap-json-report
+        path: zap-report.json
+      if: always()
+
+    - name: Upload OWASP ZAP Report (Markdown)
+      uses: actions/upload-artifact@v3
+      with:
+        name: zap-md-report
+        path: zap-report.md
+      if: always()
