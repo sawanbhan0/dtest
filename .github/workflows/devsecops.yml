@@ -27,7 +27,7 @@ jobs:
 
     # ✅ SAST: Semgrep
     - name: Run Semgrep (SAST)
-      uses: returntocorp/semgrep-action@v1
+      uses: returntocorp/semgrep-action@v2
       with:
         config: 'auto'
         generateSarif: true
