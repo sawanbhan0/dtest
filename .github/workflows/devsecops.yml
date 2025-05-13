@@ -35,11 +35,10 @@ jobs:
       run: semgrep scan --config=auto --sarif --output=semgrep.sarif
 
     - name: Upload Semgrep SARIF Report
-      uses: github/codeql-action/upload-sarif@v3
+      uses: actions/upload-artifact@v3
       with:
-        sarif_file: semgrep.sarif
-        token: ${{ secrets.GITHUB_TOKEN }}
-      if: always()
+        name: semgrep-report
+        path: semgrep.sarif
 
     # ✅ Secrets Scan: TruffleHog
     - name: Run TruffleHog (Secrets Scan)
@@ -56,9 +55,9 @@ jobs:
       with:
         target: 'http://localhost:8080'
 
-    # ✅ Upload ZAP Reports (if needed)
+    # ✅ Upload ZAP Scan Results
     - name: Upload ZAP Scan Results
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: zap-scan-results
         path: report_json.json, report_md.md, report_html.html
