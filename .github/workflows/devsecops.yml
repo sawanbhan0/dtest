@@ -38,6 +38,7 @@ jobs:
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: semgrep.sarif
+        token: ${{ secrets.GITHUB_TOKEN }}
       if: always()
 
     # ✅ Secrets Scan: TruffleHog
@@ -55,21 +56,9 @@ jobs:
       with:
         target: 'http://localhost:8080'
 
-    # ✅ Upload all scan reports as artifacts
-    - name: Upload Semgrep Report as Artifact
-      uses: actions/upload-artifact@v4
+    # ✅ Upload ZAP Reports (if needed)
+    - name: Upload ZAP Scan Results
+      uses: actions/upload-artifact@v2
       with:
-        name: semgrep-report
-        path: semgrep.sarif
-
-    - name: Upload TruffleHog Report as Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: trufflehog-report
-        path: trufflehog-output.json
-
-    - name: Upload ZAP Scan Report as Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: zap-scan-report
-        path: report_json.json
+        name: zap-scan-results
+        path: report_json.json, report_md.md, report_html.html
