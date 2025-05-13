@@ -5,10 +5,9 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
-# ✅ Required for SARIF upload to GitHub Code Scanning
 permissions:
-  security-events: write
   contents: read
+  security-events: write
 
 jobs:
   devsecops-pipeline:
@@ -55,7 +54,11 @@ jobs:
     - name: Start Java App for ZAP Scan
       run: nohup java -jar target/*.jar & sleep 15
 
-    - name: Run OWASP ZAP Baseline Scan
-      uses: zaproxy/action-baseline@v0.10.0
-      with:
-        target: 'http://localhost:8080'
+    - name: Run OWASP ZAP Baseline Scan (No GitHub Issue Reporting)
+      run: |
+        docker pull ghcr.io/zaproxy/zaproxy:stable
+        docker run --network=host -v $(pwd):/zap/wrk/:rw \
+          ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
+          -t http://localhost:8080 \
+          -J zap-report.json -w zap-report.md -r zap-report.html \
+          -I  # Continue even if warnings found
