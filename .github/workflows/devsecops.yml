@@ -11,10 +11,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4  # Explicit version
+      uses: actions/checkout@v4
 
     - name: Set up Java
-      uses: actions/setup-java@v4  # Explicit version
+      uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
@@ -25,6 +25,7 @@ jobs:
     - name: Run Unit Tests
       run: mvn test
 
+    # ✅ SAST: Semgrep (Manual Install)
     - name: Install Semgrep
       run: |
         python3 -m pip install --upgrade pip
@@ -34,46 +35,41 @@ jobs:
       run: semgrep scan --config=auto --sarif --output=semgrep.sarif
 
     - name: Upload Semgrep SARIF Report
-      uses: actions/upload-artifact@v3  # Explicit version
+      uses: github/codeql-action/upload-sarif@v3
       with:
-        name: semgrep-report
-        path: semgrep.sarif
+        sarif_file: semgrep.sarif
       if: always()
 
+    # ✅ Secrets Scan: TruffleHog
     - name: Run TruffleHog (Secrets Scan)
-      run: trufflehog --json . > trufflehog_report.json
-
-    - name: Upload TruffleHog JSON Report
-      uses: actions/upload-artifact@v3  # Explicit version
+      uses: trufflesecurity/trufflehog@main
       with:
-        name: trufflehog-report
-        path: trufflehog_report.json
-      if: always()
+        path: .
 
+    # ✅ DAST: OWASP ZAP
     - name: Start Java App for ZAP Scan
       run: nohup java -jar target/*.jar & sleep 15
 
     - name: Run OWASP ZAP Baseline Scan
-      run: |
-        docker run -v $(pwd):/zap/wrk/:rw --network=host -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t http://localhost:8080 -J zap-report.json -w zap-report.md -r zap-report.html
-
-    - name: Upload OWASP ZAP Report (HTML)
-      uses: actions/upload-artifact@v3  # Explicit version
+      uses: zaproxy/action-baseline@v0.10.0
       with:
-        name: zap-html-report
-        path: zap-report.html
-      if: always()
+        target: 'http://localhost:8080'
 
-    - name: Upload OWASP ZAP Report (JSON)
-      uses: actions/upload-artifact@v3  # Explicit version
+    # ✅ Upload all scan reports as artifacts
+    - name: Upload Semgrep Report as Artifact
+      uses: actions/upload-artifact@v4
       with:
-        name: zap-json-report
-        path: zap-report.json
-      if: always()
+        name: semgrep-report
+        path: semgrep.sarif
 
-    - name: Upload OWASP ZAP Report (Markdown)
-      uses: actions/upload-artifact@v3  # Explicit version
+    - name: Upload TruffleHog Report as Artifact
+      uses: actions/upload-artifact@v4
       with:
-        name: zap-md-report
-        path: zap-report.md
-      if: always()
+        name: trufflehog-report
+        path: trufflehog-output.json
+
+    - name: Upload ZAP Scan Report as Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: zap-scan-report
+        path: report_json.json
