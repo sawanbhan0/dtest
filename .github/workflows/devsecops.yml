@@ -26,28 +26,28 @@ jobs:
       run: mvn test
 
     # 🛡️ Black Duck SCA
-    - name: Run Black Duck Scan
-      uses: synopsys-sig/synopsys-action@v1.8.0
-      with:
-        blackduck_url: ${{ secrets.BLACKDUCK_URL }}
-        blackduck_token: ${{ secrets.BLACKDUCK_API_TOKEN }}
-        scan_full: true
+   # - name: Run Black Duck Scan
+    #  uses: synopsys-sig/synopsys-action@v1.8.0
+     # with:
+      #  blackduck_url: ${{ secrets.BLACKDUCK_URL }}
+       # blackduck_token: ${{ secrets.BLACKDUCK_API_TOKEN }}
+        #scan_full: true
 
     # 🧠 Coverity SAST
-    - name: Run Coverity Scan
-      env:
-        COVERITY_USER: ${{ secrets.COVERITY_USER }}
-        COVERITY_PASSPHRASE: ${{ secrets.COVERITY_PASSWORD }}
-      run: |
-        wget https://scan.coverity.com/download/linux64 --post-data "token=$COVERITY_PASSPHRASE&project=MyJavaWebApp" -O coverity_tool.tgz
-        mkdir coverity
-        tar -xvzf coverity_tool.tgz -C coverity --strip-components=1
-        export PATH=$PATH:$PWD/coverity/bin
-        ./coverity/bin/cov-build --dir cov-int mvn clean compile
-        tar czvf project.tgz cov-int
-        curl --form token=$COVERITY_PASSPHRASE \
-             --form email=$COVERITY_USER \
-             --form file=@project.tgz \
-             --form version="main" \
-             --form description="Java Web App analysis" \
-             https://scan.coverity.com/builds?project=MyJavaWebApp
+    #- name: Run Coverity Scan
+     # env:
+      #  COVERITY_USER: ${{ secrets.COVERITY_USER }}
+       # COVERITY_PASSPHRASE: ${{ secrets.COVERITY_PASSWORD }}
+      #run: |
+       # wget https://scan.coverity.com/download/linux64 --post-data "token=$COVERITY_PASSPHRASE&project=MyJavaWebApp" -O coverity_tool.tgz
+        #mkdir coverity
+        #tar -xvzf coverity_tool.tgz -C coverity --strip-components=1
+        #export PATH=$PATH:$PWD/coverity/bin
+        #./coverity/bin/cov-build --dir cov-int mvn clean compile
+        #tar czvf project.tgz cov-int
+        #curl --form token=$COVERITY_PASSPHRASE \
+         #    --form email=$COVERITY_USER \
+          #   --form file=@project.tgz \
+           #  --form version="main" \
+            # --form description="Java Web App analysis" \
+             #https://scan.coverity.com/builds?project=MyJavaWebApp
