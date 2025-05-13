@@ -7,7 +7,7 @@ on:
 
 jobs:
   devsecops-pipeline:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Ensure this is the latest stable runner
 
     steps:
     - name: Checkout code
@@ -35,7 +35,7 @@ jobs:
       run: semgrep scan --config=auto --sarif --output=semgrep.sarif
 
     - name: Upload Semgrep SARIF Report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v2  # Using v2 instead of v3
       with:
         name: semgrep-report
         path: semgrep.sarif
@@ -46,7 +46,7 @@ jobs:
       run: trufflehog --json . > trufflehog_report.json
 
     - name: Upload TruffleHog JSON Report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v2  # Using v2 instead of v3
       with:
         name: trufflehog-report
         path: trufflehog_report.json
@@ -61,21 +61,21 @@ jobs:
         docker run -v $(pwd):/zap/wrk/:rw --network=host -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t http://localhost:8080 -J zap-report.json -w zap-report.md -r zap-report.html
 
     - name: Upload OWASP ZAP Report (HTML)
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v2  # Using v2 instead of v3
       with:
         name: zap-html-report
         path: zap-report.html
       if: always()
 
     - name: Upload OWASP ZAP Report (JSON)
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v2  # Using v2 instead of v3
       with:
         name: zap-json-report
         path: zap-report.json
       if: always()
 
     - name: Upload OWASP ZAP Report (Markdown)
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v2  # Using v2 instead of v3
       with:
         name: zap-md-report
         path: zap-report.md
