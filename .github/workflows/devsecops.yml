@@ -7,14 +7,14 @@ on:
 
 jobs:
   devsecops-pipeline:
-    runs-on: ubuntu-latest  # Always using the latest stable runner version
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v4  # Explicit version
 
     - name: Set up Java
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v4  # Explicit version
       with:
         java-version: '17'
         distribution: 'temurin'
@@ -25,7 +25,6 @@ jobs:
     - name: Run Unit Tests
       run: mvn test
 
-    # ✅ SAST: Semgrep (Manual Install)
     - name: Install Semgrep
       run: |
         python3 -m pip install --upgrade pip
@@ -35,24 +34,22 @@ jobs:
       run: semgrep scan --config=auto --sarif --output=semgrep.sarif
 
     - name: Upload Semgrep SARIF Report
-      uses: actions/upload-artifact@latest  # Always fetches the latest version
+      uses: actions/upload-artifact@v3  # Explicit version
       with:
         name: semgrep-report
         path: semgrep.sarif
       if: always()
 
-    # ✅ Secrets Scan: TruffleHog
     - name: Run TruffleHog (Secrets Scan)
       run: trufflehog --json . > trufflehog_report.json
 
     - name: Upload TruffleHog JSON Report
-      uses: actions/upload-artifact@latest  # Always fetches the latest version
+      uses: actions/upload-artifact@v3  # Explicit version
       with:
         name: trufflehog-report
         path: trufflehog_report.json
       if: always()
 
-    # ✅ DAST: OWASP ZAP
     - name: Start Java App for ZAP Scan
       run: nohup java -jar target/*.jar & sleep 15
 
@@ -61,21 +58,21 @@ jobs:
         docker run -v $(pwd):/zap/wrk/:rw --network=host -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t http://localhost:8080 -J zap-report.json -w zap-report.md -r zap-report.html
 
     - name: Upload OWASP ZAP Report (HTML)
-      uses: actions/upload-artifact@latest  # Always fetches the latest version
+      uses: actions/upload-artifact@v3  # Explicit version
       with:
         name: zap-html-report
         path: zap-report.html
       if: always()
 
     - name: Upload OWASP ZAP Report (JSON)
-      uses: actions/upload-artifact@latest  # Always fetches the latest version
+      uses: actions/upload-artifact@v3  # Explicit version
       with:
         name: zap-json-report
         path: zap-report.json
       if: always()
 
     - name: Upload OWASP ZAP Report (Markdown)
-      uses: actions/upload-artifact@latest  # Always fetches the latest version
+      uses: actions/upload-artifact@v3  # Explicit version
       with:
         name: zap-md-report
         path: zap-report.md
