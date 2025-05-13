@@ -2,60 +2,52 @@ name: DevSecOps Pipeline - Java WebApp
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    branches: [ "main" ]
+  workflow_dispatch:  # allows manual trigger
 
 jobs:
-  build-test-scan:
+  build-and-secure:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v3
+    - name: Checkout source code
+      uses: actions/checkout@v4
 
-    - name: Set up JDK
-      uses: actions/setup-java@v3
+    - name: Set up Java
+      uses: actions/setup-java@v4
       with:
-        java-version: '11'
+        java-version: '17'
         distribution: 'temurin'
 
-    - name: Build Project
-      run: mvn clean package
+    - name: Build with Maven
+      run: mvn clean install
 
     - name: Run Unit Tests
       run: mvn test
 
-    #- name: 🔍 Black Duck Scan
-     #run: |
-        #curl -s -L https://detect.synopsys.com/detect.sh -o detect.sh
-        #chmod +x detect.sh
-        #./detect.sh \
-          #--blackduck.api.token=${{ secrets.BLACKDUCK_API_TOKEN }} \
-          #--blackduck.url=https://your.blackduck.url \
-          #--detect.project.name=vuln-webapp \
-          #--detect.project.version.name=1.0.0
+    # 🛡️ Black Duck SCA
+    - name: Run Black Duck Scan
+      uses: synopsys-sig/synopsys-action@v1.8.0
+      with:
+        blackduck_url: ${{ secrets.BLACKDUCK_URL }}
+        blackduck_token: ${{ secrets.BLACKDUCK_API_TOKEN }}
+        scan_full: true
 
-    #- name: 🛡️ Coverity Scan
-      #run: |
-        #wget https://your.coverity.server/cov-analysis-linux64.tgz
-        #tar -xvzf cov-analysis-linux64.tgz
-        #export PATH=$PATH:$PWD/cov-analysis-linux64/bin
-        #cov-build --dir cov-int mvn compile
-        #cov-analyze --dir cov-int
-        #cov-commit-defects --dir cov-int \
-          #--url https://your.coverity.server \
-          #--stream vuln-webapp \
-          #--user ${{ secrets.COVERITY_USER }} \
-          #--password ${{ secrets.COVERITY_PASSWORD }}
-
-    #- name: ⚙️ Run App with Seeker Agent
-      #run: |
-        #export JAVA_TOOL_OPTIONS="-javaagent:/seeker/seeker-agent.jar"
-        #nohup java -jar target/vuln-webapp-1.0.0.jar &
-
-    #- name: 🧪 Simulate IAST Request
-      #run: |
-        #sleep 10
-        #curl "http://localhost:8080/?name=<script>alert(1)</script>"
-        #curl -X POST "http://localhost:8080/run" -d "cmd=ls"
+    # 🧠 Coverity SAST
+    - name: Run Coverity Scan
+      env:
+        COVERITY_USER: ${{ secrets.COVERITY_USER }}
+        COVERITY_PASSPHRASE: ${{ secrets.COVERITY_PASSWORD }}
+      run: |
+        wget https://scan.coverity.com/download/linux64 --post-data "token=$COVERITY_PASSPHRASE&project=MyJavaWebApp" -O coverity_tool.tgz
+        mkdir coverity
+        tar -xvzf coverity_tool.tgz -C coverity --strip-components=1
+        export PATH=$PATH:$PWD/coverity/bin
+        ./coverity/bin/cov-build --dir cov-int mvn clean compile
+        tar czvf project.tgz cov-int
+        curl --form token=$COVERITY_PASSPHRASE \
+             --form email=$COVERITY_USER \
+             --form file=@project.tgz \
+             --form version="main" \
+             --form description="Java Web App analysis" \
+             https://scan.coverity.com/builds?project=MyJavaWebApp
