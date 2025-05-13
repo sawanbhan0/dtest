@@ -5,6 +5,11 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+# ✅ Required for SARIF upload to GitHub Code Scanning
+permissions:
+  security-events: write
+  contents: read
+
 jobs:
   devsecops-pipeline:
     runs-on: ubuntu-latest
