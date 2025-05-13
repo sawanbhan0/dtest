@@ -25,12 +25,14 @@ jobs:
     - name: Run Unit Tests
       run: mvn test
 
-    # ✅ SAST: Semgrep (latest version using @main)
-    - name: Run Semgrep (SAST)
-      uses: returntocorp/semgrep-action@main
-      with:
-        config: 'auto'
-        generateSarif: true
+    # ✅ SAST: Semgrep (Manual Install)
+    - name: Install Semgrep
+      run: |
+        python3 -m pip install --upgrade pip
+        pip install semgrep
+
+    - name: Run Semgrep Scan
+      run: semgrep scan --config=auto --sarif --output=semgrep.sarif
 
     - name: Upload Semgrep SARIF Report
       uses: github/codeql-action/upload-sarif@v3
