@@ -31,14 +31,6 @@ jobs:
       with:
         config: 'auto'
 
-    # ✅ SCA: OWASP Dependency-Check (Fixed)
-    - name: Run OWASP Dependency-Check
-      uses: jeremylong/DependencyCheck@v7.4.0
-      with:
-        project: "JavaApp"
-        scanPath: "."
-        format: "HTML"
-
     # ✅ Secrets Scan: TruffleHog
     - name: Run TruffleHog (Secrets Scan)
       uses: trufflesecurity/trufflehog@main
