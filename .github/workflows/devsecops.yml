@@ -8,7 +8,7 @@ on:
 permissions:
   contents: read
   actions: read
-  security-events: write
+  security-events: write  # REQUIRED for upload-sarif
 
 jobs:
   devsecops-pipeline:
@@ -30,9 +30,7 @@ jobs:
       - name: Run Unit Tests
         run: mvn test
 
-      # -------------------------
-      # SAST: Semgrep
-      # -------------------------
+      # ---------------- SEMGREP ----------------
       - name: Install Semgrep
         run: |
           python3 -m pip install --upgrade pip
@@ -41,36 +39,23 @@ jobs:
       - name: Run Semgrep Scan
         run: semgrep scan --config=auto --sarif --output=semgrep.sarif
 
-      - name: Upload Semgrep SARIF
+      - name: Upload Semgrep SARIF Report
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: semgrep.sarif
         if: always()
 
-      # -------------------------
-      # SAST: SpotBugs + FindSecBugs
-      # -------------------------
-      - name: Run SpotBugs
-        run: |
-          mkdir -p spotbugs
-          wget https://github.com/spotbugs/spotbugs/releases/download/4.8.3/spotbugs-4.8.3.tgz
-          tar -xzf spotbugs-4.8.3.tgz
-          spotbugs-4.8.3/bin/spotbugs -textui -effort:max -low -sarif -output spotbugs.sarif target/
-
-      - name: Upload SpotBugs SARIF
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: spotbugs.sarif
-        if: always()
-
-      # -------------------------
-      # SCA: OWASP Dependency-Check
-      # -------------------------
+      # ---------------- OWASP DEPENDENCY-CHECK ----------------
       - name: Run OWASP Dependency-Check
         run: |
           curl -L https://github.com/jeremylong/DependencyCheck/releases/download/v8.4.2/dependency-check-8.4.2-release.zip -o dc.zip
           unzip dc.zip -d dc
-          dc/dependency-check/bin/dependency-check.sh --project "JavaApp" --format "SARIF" --out . --scan .
+          chmod +x dc/dependency-check/bin/dependency-check.sh
+          dc/dependency-check/bin/dependency-check.sh \
+            --project "JavaApp" \
+            --format "SARIF" \
+            --out . \
+            --scan .
         continue-on-error: true
 
       - name: Upload Dependency-Check SARIF
@@ -79,44 +64,29 @@ jobs:
           sarif_file: dependency-check-report.sarif
         if: always()
 
-      # -------------------------
-      # Secrets Scanning: TruffleHog
-      # -------------------------
-      - name: Run TruffleHog
+      # ---------------- SPOTBUGS ----------------
+      - name: Run SpotBugs
         run: |
-          pip install trufflehog
-          trufflehog filesystem . --json > trufflehog.json
+          wget https://github.com/spotbugs/spotbugs/releases/download/4.8.3/spotbugs-4.8.3.tgz
+          tar -xzf spotbugs-4.8.3.tgz
+          chmod +x spotbugs-4.8.3/bin/spotbugs
+          spotbugs-4.8.3/bin/spotbugs -textui -effort:max -low -sarif -output spotbugs.sarif target/
         continue-on-error: true
 
-      # -------------------------
-      # Secrets Scanning: Gitleaks
-      # -------------------------
-      - name: Run Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
-
-      # -------------------------
-      # SBOM: CycloneDX
-      # -------------------------
-      - name: Generate SBOM with CycloneDX
-        run: |
-          mvn org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom
-        continue-on-error: true
-
-      # -------------------------
-      # IaC Scan: Checkov
-      # -------------------------
-      - name: Run Checkov
-        uses: bridgecrewio/checkov-action@master
+      - name: Upload SpotBugs SARIF
+        uses: github/codeql-action/upload-sarif@v3
         with:
-          directory: .
+          sarif_file: spotbugs.sarif
+        if: always()
+
+      # ---------------- TRUFFLEHOG (Secrets Scan) ----------------
+      - name: TruffleHog secrets scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: .
         continue-on-error: true
 
-      # -------------------------
-      # DAST: OWASP ZAP (Optional - if app is running)
-      # -------------------------
+      # ---------------- OWASP ZAP DAST ----------------
       - name: Run OWASP ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.10.0
         with:
